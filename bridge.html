@@ -27,7 +27,7 @@ Response: document.title = "RTB_RES:" + JSON.stringify({ q, seq, ok, data?, part
     var CHUNK = 3000;          // titles are capped at 4096 characters
     var outgoing = Object.create(null);
     var seq = 0;
-    var lastRequest = '';
+    var lastHash = '';
 
     function reply(q, ok, extra) {
         var message = { q: q, seq: ++seq, ok: ok };
@@ -62,11 +62,13 @@ Response: document.title = "RTB_RES:" + JSON.stringify({ q, seq, ok, data?, part
     };
 
     function onRequest() {
+        // Each fragment is handled once; follow-up "next" calls reuse q but differ in a.
+        if (location.hash === lastHash) { return; }
+        lastHash = location.hash;
         var message;
         try { message = JSON.parse(decodeURIComponent(location.hash.slice(1))); } catch (e) { return; }
-        if (!message || typeof message.q !== 'string' || message.q === lastRequest || !Array.isArray(message.a)) { return; }
+        if (!message || typeof message.q !== 'string' || !Array.isArray(message.a)) { return; }
         if (!Object.prototype.hasOwnProperty.call(handlers, message.f)) { return; }
-        lastRequest = message.q;
         try { handlers[message.f].apply(null, [message.q].concat(message.a)); } catch (e) { fail(message.q, e); }
     }
 
